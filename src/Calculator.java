@@ -6,7 +6,7 @@ import java.util.ArrayList;
 public class Calculator {
 
      ArrayList<String> ExprStack; //массив с эелементами выражения
-    static final char []AviableOperations ={'*','/','+','-','^','s','(',')','P','i','c'};//s-корень i-синус c - косинус P-ПИ
+    static final char []AviableOperations ={'*','/','+','-','^','s','(',')','P','i','c','f'};//s-корень i-синус c - косинус P-ПИ
     public static void printInfo(){
         System.out.println("|-------------------------------|");
         System.out.println("| Доступные операции: ");
@@ -20,6 +20,7 @@ public class Calculator {
         System.out.println("| PI - число ПИ");
         System.out.println("| sin - синус(в градусах!)");
         System.out.println("| cos - косинус(в градусах!)");
+        System.out.println("| ! - факториал");
         System.out.println("|-------------------------------|");
     }
 
@@ -37,6 +38,7 @@ public class Calculator {
     }
 
    private void CalculateByPriority(ArrayList<String> expArr){//просчитать основные действия по приоритету
+       solveOperations(expArr,'f');
        solveOperations(expArr,'i','c');
        solveOperations(expArr,'^','s');
        solveOperations(expArr,'*','/');
@@ -45,6 +47,7 @@ public class Calculator {
    }
     static double calculateSimple(double a,char c,double b){//действия над двумя числами
         switch(c){
+            case 'f': return fact(a);
             case 'c': return Math.cos(Math.toRadians(b));
             case 'i': return Math.sin(Math.toRadians(b));
             case 's': return Math.sqrt(b);
@@ -57,11 +60,18 @@ public class Calculator {
         }
     }
 
+    static double fact(double n){
+        double res=1;
+        for(int i=(int)n;i>=1;i--){
+            res*=i;
+        }
+        return res;
+    }
     private void solveOperations(ArrayList<String> ar,char ...operations){ //сократить выражение, решив некоторые действия
         for(char c:operations){
 
             for(int i=0;i<ar.size()-1;i++){
-
+                if(i==ar.size()-2 && ar.get(i+1).equals(Character.toString('f'))) i+=1;
                   if( ar.get(i).equals( Character.toString(c) ) )
                   {
                       if (c == '(') {
@@ -69,19 +79,22 @@ public class Calculator {
                       }
                       else
                       {
-                         double n1 = 1.0, n2;
+                         double n1 = 1.0, n2=1.0;
                          if (c != 's' && c!='i' && c!='c')//если операция не корень и не синус/косинус
                          {
                              if(ar.get(i-1).equals("P")) n1=Math.PI;
                              else       n1 = Double.parseDouble(ar.get(i - 1));
                          }
-                          if(ar.get(i+1).equals("P"))    n2=Math.PI;
-                          else          n2= Double.parseDouble(ar.get(i + 1));
-                          double r = calculateSimple(n1, c, n2);
+                         if(c!='f')
+                          {
+                             if (ar.get(i + 1).equals("P")) n2 = Math.PI;
+                             else n2 = Double.parseDouble(ar.get(i + 1));
+                          }
+                         double r = calculateSimple(n1, c, n2);
                          String res = Double.toString(r);
 
-                         ar.remove(i + 1);
-                          if (c != 's' && c!='i' && c!='c')//если операция не корень и не синус/косинус
+                         if(c!='f') ar.remove(i + 1);
+                         if (c != 's' && c!='i' && c!='c')//если операция не корень и не синус/косинус
                           {
                               ar.remove(i);
                               i -= 1;
@@ -121,7 +134,7 @@ public class Calculator {
         ExprStack.set(index,subExpr.get(0));
     }
 
-    private String fixExpression(String expr){//убираем ненужное
+    private String fixExpression(String expr){//убираем ненужное, заменяем нужное
         String fixed=expr;
         fixed =fixed.toLowerCase();
         fixed = fixed.replaceAll(" ","");//удалить пробелы
@@ -130,6 +143,7 @@ public class Calculator {
         fixed = fixed.replaceAll("pi","P");//ПИ
         fixed = fixed.replaceAll("sin","i");//синус
         fixed = fixed.replaceAll("cos","c");//косинус
+        fixed = fixed.replaceAll("!","f");//косинус
         return fixed;
     }
 
