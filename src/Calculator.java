@@ -6,7 +6,7 @@ import java.util.ArrayList;
 public class Calculator {
 
      ArrayList<String> ExprStack; //массив с эелементами выражения
-    static final char []AviableOperations ={'*','/','+','-','^','s','(',')','P'};//s-корень
+    static final char []AviableOperations ={'*','/','+','-','^','s','(',')','P','i','c'};//s-корень i-синус c - косинус P-ПИ
     public static void printInfo(){
         System.out.println("|-------------------------------|");
         System.out.println("| Доступные операции: ");
@@ -18,6 +18,8 @@ public class Calculator {
         System.out.println("| sqrt - квадратный корень");
         System.out.println("| (...) - скобки");
         System.out.println("| PI - число ПИ");
+        System.out.println("| sin - синус(в градусах!)");
+        System.out.println("| cos - косинус(в градусах!)");
         System.out.println("|-------------------------------|");
     }
 
@@ -35,6 +37,7 @@ public class Calculator {
     }
 
    private void CalculateByPriority(ArrayList<String> expArr){//просчитать основные действия по приоритету
+       solveOperations(expArr,'i','c');
        solveOperations(expArr,'^','s');
        solveOperations(expArr,'*','/');
        solveOperations(expArr,'+','-');
@@ -42,6 +45,8 @@ public class Calculator {
    }
     static double calculateSimple(double a,char c,double b){//действия над двумя числами
         switch(c){
+            case 'c': return Math.cos(Math.toRadians(b));
+            case 'i': return Math.sin(Math.toRadians(b));
             case 's': return Math.sqrt(b);
             case '^': return Math.pow(a,b);
             case '*': return a*b;
@@ -65,7 +70,7 @@ public class Calculator {
                       else
                       {
                          double n1 = 1.0, n2;
-                         if (c != 's')//если операция не корень
+                         if (c != 's' && c!='i' && c!='c')//если операция не корень и не синус/косинус
                          {
                              if(ar.get(i-1).equals("P")) n1=Math.PI;
                              else       n1 = Double.parseDouble(ar.get(i - 1));
@@ -76,10 +81,11 @@ public class Calculator {
                          String res = Double.toString(r);
 
                          ar.remove(i + 1);
-                         if (c != 's') {//если операция не корень
+                          if (c != 's' && c!='i' && c!='c')//если операция не корень и не синус/косинус
+                          {
                               ar.remove(i);
                               i -= 1;
-                         }
+                          }
                          ar.set(i, res);
                          // System.out.println(ExprStack);
                   }
@@ -117,11 +123,13 @@ public class Calculator {
 
     private String fixExpression(String expr){//убираем ненужное
         String fixed=expr;
-        //fixed =fixed.toLowerCase();
+        fixed =fixed.toLowerCase();
         fixed = fixed.replaceAll(" ","");//удалить пробелы
         fixed = fixed.replaceAll(",",".");//правильный вид десятичной точки
         fixed = fixed.replaceAll("sqrt","s");//корень
-        fixed = fixed.replaceAll("PI","P");//ПИ
+        fixed = fixed.replaceAll("pi","P");//ПИ
+        fixed = fixed.replaceAll("sin","i");//синус
+        fixed = fixed.replaceAll("cos","c");//косинус
         return fixed;
     }
 
