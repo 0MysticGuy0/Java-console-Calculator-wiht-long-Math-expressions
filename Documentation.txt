@@ -1,0 +1,8 @@
+1)Classes Ierarchy:
+
+            CalculatorElement
+                    |
+                    |
+     _______________________________________
+     |              |                      |
+Variable         Scopes                 Operation

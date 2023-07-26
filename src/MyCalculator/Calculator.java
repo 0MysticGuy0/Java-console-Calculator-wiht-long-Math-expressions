@@ -1,106 +1,112 @@
 package MyCalculator;
-import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import MyCalculator.CalculatorElements.*;
+import MyCalculator.CalculatorElements.Operations.BinaryOperation;
+import MyCalculator.CalculatorElements.Operations.Operation;
+import MyCalculator.CalculatorElements.Operations.UnaryOperation;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class Calculator {
-    static final Operation []AviableOperations = //Все доступные операции/переменные
+    static final CalculatorElement[]AviableOperations = //Все доступные операции/переменные
             {
-                    new Operation(4,'*',OperationType.Binary,         "*",    ((a,b)->a*b),                           "Умножение"),
-                    new Operation(4,'/',OperationType.Binary,         "/",    ((a,b)->a/b),                           "Деление"),
-                    new Operation(5,'+',OperationType.Binary,         "+",    (Double::sum),                          "Сумма"),
-                    new Operation(5,'-',OperationType.Binary,         "-",    ((a,b)->a-b),                           "Разность"),
-                    new Operation(3,'^',OperationType.Binary,         "^",    (Math::pow),                            "Возведение в степень"),
-                    new Operation(3,'s',OperationType.Unary_prefix,   "sqrt", ((a,b)->Math.sqrt(b)),                  "Квадратный корень"),
-                    new Operation(-1,'(',OperationType.Other,         "(",    ((a,b)->a*b),                           "Скобка"),
-                    new Operation(-1,')',OperationType.Other,         ")",    ((a,b)->a*b),                           "Скобка"),
-                    new Operation(0,'P',OperationType.Variable,       "pi",   ((a,b)->Math.PI),                       "Число ПИ"),
-                    new Operation(1,'i',OperationType.Unary_prefix,   "sin",  ((a,b)->Math.sin(Math.toRadians(b)) ),  "Синус (в градусах)"),
-                    new Operation(1,'c',OperationType.Unary_prefix,   "cos",  ((a,b)->Math.cos(Math.toRadians(b))),   "Косинус (в градусах)"),
-                    new Operation(2,'f',OperationType.Unary_postfix,  "!",    ((a,b)->fact(a)),                       "Факториал числа"),
-                    new Operation(0,'a',OperationType.Unary_prefix,   "abs",  ((a,b)->Math.abs(b)),                   "Модуль числа"),
+                    new Scopes('(',"(","открывающая скобка приоритета"),
+                    new Scopes(')',")","закрывающая скобка приоритета"),
+                    /////
+                    new Variable('P',"pi","число Пи"),
+                    //
+                    new BinaryOperation(5,'+',(Double::sum),                                 "+",   "сложение"),
+                    new BinaryOperation(5,'-',((a,b)->a-b),                                  "-",   "вычитание"),
+                    new BinaryOperation(4,'*',((a,b)->a*b),                                  "*",   "умножение"),
+                    new BinaryOperation(4,'/',((a,b)->a/b),                                  "/",   "деление"),
+                    new BinaryOperation(3,'^',(Math::pow),                                   "^",   "возведение в степень"),
 
+                    new UnaryOperation( 3,'s',(Math::sqrt),                     true, "sqrt","извлечение квадратного корня"),
+                    new UnaryOperation( 2,'f',(Calculator::fact),               false,"!",   "факториал числа"),
+                    new UnaryOperation( 1,'i',(a->Math.sin(Math.toRadians(a)) ),true, "sin", "синус(в градусах!)"),
+                    new UnaryOperation( 1,'c',(a->Math.cos(Math.toRadians(a)) ),true, "cos", "косинус(в градусах!)"),
+                    new UnaryOperation( 0,'a',( Math::abs ),                    true, "abs", "модуль числа"),
             };
 
     private void CalculateByPriority(ArrayList<String> expArr){//просчитать основные действия по приоритету
 
-        for(var priority:Operation.getAllPriorities()){
-            solveOperations(expArr,Operation.getOperationsWithPriority(priority));
+        for(var priority: CalculatorElement.getAllPriorities()){
+            solveOperations(expArr, CalculatorElement.getOperationsWithPriority(priority));
              SolutionBySteps.add(getExpr());
         }
         if(expArr.size()==1 && expArr.get(0).equals("P")) expArr.set(0,Double.toString(Math.PI));
     }
 
     public ArrayList<String> ExprStack; //массив с эелементами выражения
-    private ArrayList<String> SolutionBySteps=new ArrayList<>();//для вывода решения по шагам
+    private final ArrayList<String> SolutionBySteps=new ArrayList<>();//для вывода решения по шагам
     public Calculator()
     {
         ExprStack=new ArrayList<>();
     }
     public static void printInfo(){
-       Operation.printInfo();
+       CalculatorElement.printInfo();
     }
     public double solve(String expr){//результат
         SetExpr(expr);
         CalculateByPriority(ExprStack);
+
         SolutionBySteps.stream().distinct().toList()//убираем повторы
                 .forEach(System.out::println);//вывод решения по шагам
+
         return Double.parseDouble(ExprStack.get(0));
     }
 
     public static double fact(double n)//Факториал
     {
         double res=1;
-        for(int i=(int)n;i>=1;i--){
-            res*=i;
-        }
+        for(int i=(int)n;i>=1;i--) res*=i;
         return res;
     }
+    private  String getExpr(){      return ExprStack.stream().collect(Collectors.joining());    }
 
-    private  String getExpr()
-    {
-        return ExprStack.stream().collect(Collectors.joining());
-    }
     private void solveOperations(ArrayList<String> ar, List<Operation> operations)//сократить выражение, решив некоторые действия
     {
-        for(int i=0;i<ar.size()-1;i++) {
+        for(int i=0;i<ar.size();i++) {//проходмся по всем элементам выражения
+            if(ar.get(i).equals("(")) solveBrackets(i);
+            else {
+                for (var operation : operations) {
+                    //if (i == ar.size() - 2 && operation.isUnaryPostfix()) i += 1; //?????если в конце выражения унарная-постфиксная операция
 
-            for(var operation:operations) {
-                if (i == ar.size() - 2 && operation.type.equals(OperationType.Unary_postfix))    i += 1; //если в конце выражения унарная-постфиксная операция
+                    if (ar.get(i).equals(Character.toString(operation.sign))) {
 
-                if(ar.get(i).equals("(")) solveBrackets(i);
-                else if (ar.get(i).equals(Character.toString(operation.sign))) {
+                        double n1 = 1.0, n2 = 1.0, r = 0;
 
-                        double n1 = 1.0, n2 = 1.0;
-                        if (i != 0)
-                            if (!operation.type.equals(OperationType.Unary_prefix))//если не унарная-префиксная операция
-                            {
-                                if (ar.get(i - 1).equals("P")) n1 = Math.PI;
-                                else n1 = Double.parseDouble(ar.get(i - 1));
-                            }
-                        if (!operation.type.equals(OperationType.Unary_postfix))//если не унарная-постфиксная операция
+                        if (i != 0 && !operation.isUnaryPrefix())//если не унарная-префиксная операция
                         {
+                            if (ar.get(i - 1).equals("P")) n1 = Math.PI;
+                            else n1 = Double.parseDouble(ar.get(i - 1));
+                            if (!(operation instanceof BinaryOperation)) r = operation.calculate(n1);
+                        }
+
+                        if (!operation.isUnaryPostfix())//если не унарная-постфиксная операция
+                        {
+                            if(i==ar.size()-1 ) break;//если встретили не постфиксную операцию и она - послежний символ в выражении(опечатка ползователя)
+                            if (ar.get(i + 1).equals("(")) solveBrackets(i + 1);
                             if (ar.get(i + 1).equals("P")) n2 = Math.PI;
                             else n2 = Double.parseDouble(ar.get(i + 1));
+                            if (!(operation instanceof BinaryOperation)) r = operation.calculate(n2);
                         }
-                        double r = operation.calculate(n1, n2);
+                        if (operation instanceof BinaryOperation) r = operation.calculate(n1, n2);
+
                         String res = Double.toString(r);
 
-                        if (!operation.type.equals(OperationType.Unary_postfix))//если не унарная-постфиксная операция
+                        if (!operation.isUnaryPostfix())//если не унарная-постфиксная операция
                             ar.remove(i + 1);
                         if (i != 0)
-                            if (!operation.type.equals(OperationType.Unary_prefix))//если не унарная-префиксная операция
+                            if (!operation.isUnaryPrefix())//если не унарная-префиксная операция
                             {
                                 ar.remove(i);
                                 i -= 1;
                             }
-                        //System.out.println("ggg "+ar);
                         ar.set(i, res);
-                        // System.out.println(ExprStack);
+                        break;
+                    }
                 }
             }
         }
@@ -156,14 +162,6 @@ public class Calculator {
         {
             if((expr.charAt(i) >='0' && expr.charAt(i)<='9') || expr.charAt(i)=='.')//сборка числа
             {
-                if(ExprStack.size()>0 && ExprStack.get(ExprStack.size()-1).equals("-"))//Если прошлым элементом был -
-                {
-                    if(ExprStack.size()==1) ExprStack.remove(0); //если выражение начиналось с -, удаляем -
-                    else ExprStack.set(ExprStack.size()-1,"+"); //иначе можно заменить - на +
-                    ExprStack.add("-1");
-                    ExprStack.add("*");
-                    System.out.println("TTTTTT");
-                }
                 cur+=expr.charAt(i);//собираем число
                 if(i==expr.length()-1){
                     ExprStack.add(cur);
@@ -183,13 +181,22 @@ public class Calculator {
                     char s=AviableOperations[j].sign;
                     if(expr.charAt(i) == s)
                     {
-                        if(ExprStack.size()>0 || AviableOperations[j].type.equals(OperationType.Unary_prefix) || AviableOperations[j].type.equals(OperationType.Variable) || AviableOperations[j].type.equals(OperationType.Other) || s=='-')//Если операция в начале выражения и не является  унарной-префиксной - не добавлять
+                        if(ExprStack.size()>0 || AviableOperations[j] instanceof UnaryOperation || AviableOperations[j] instanceof Variable || AviableOperations[j] instanceof Scopes || s=='-')//Если операция в начале выражения и не является  унарной-префиксной - не добавлять
                         {
                             if(s!='-') ExprStack.add(Character.toString(s));
-                            else
+                            else if(i<expr.length()-1)//если встретили -, заменяем на -1* или +(-1)*
                             {
-                                if(ExprStack.size()>0) ExprStack.add("+");
-                                ExprStack.add("-1");ExprStack.add("*");
+                                if(ExprStack.size()==0 ||( !((expr.charAt(i-1) >='0' && expr.charAt(i-1)<='9') || expr.charAt(i-1)=='.') && !(CalculatorElement.getCalulatorElement(expr.charAt(i-1)) instanceof UnaryOperation && ((Operation)CalculatorElement.getCalulatorElement(expr.charAt(i-1))).isUnaryPostfix() )) ){
+                                    //если - в начале выражения
+                                    //или перед минусом не число и не унарная-постфиксная операция
+                                    ExprStack.add("-1");
+                                    ExprStack.add("*");
+                                }
+                                else{
+                                    ExprStack.add("+");
+                                    ExprStack.add("-1");
+                                    ExprStack.add("*");
+                                }
                             }
                         }
                     }
@@ -198,6 +205,3 @@ public class Calculator {
         }
     }
 }
-
-///////////////////////////////////////////////////////
-
